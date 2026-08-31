@@ -9,6 +9,7 @@ import com.mostafa.ping.app.IncomingPing
 import com.mostafa.ping.app.PingApplication
 import com.mostafa.ping.app.data.FcmSender
 import com.mostafa.ping.app.data.FirebaseRepository
+import com.mostafa.ping.app.fcm.LoveNotifier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,7 @@ data class PingUiState(
 )
 
 class PingViewModel(application: Application) : AndroidViewModel(application) {
-    private val repo = FirebaseRepository()
+    private val repo = FirebaseRepository(application.applicationContext)
 
     private val _state = MutableStateFlow(PingUiState())
     val state: StateFlow<PingUiState> = _state.asStateFlow()
@@ -100,7 +101,16 @@ class PingViewModel(application: Application) : AndroidViewModel(application) {
             _state.update { it.copy(sending = true, error = null, notice = null) }
             try {
                 repo.sendPing(current.myCode, partner)
-                _state.update { it.copy(sending = false, notice = "Sent with love") }
+                _state.update {
+                    it.copy(
+                        sending = false,
+                        notice = if (FcmSender.isConfigured) {
+                            "Sent — partner should get a full-screen alert"
+                        } else {
+                            "Saved, but push key missing in this build"
+                        }
+                    )
+                }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(sending = false, error = e.message ?: "Could not send ping")
@@ -130,7 +140,7 @@ class PingViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
             try {
-                val uid = repo.signIn()
+                val uid = repo.deviceUid()
                 val profile = repo.loadOrCreateProfile(uid)
                 _state.update {
                     it.copy(
@@ -142,12 +152,21 @@ class PingViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 attachListeners(profile.code)
             } catch (e: Exception) {
+                android.util.Log.e("PingViewModel", "start failed", e)
+                val raw = listOfNotNull(e.message, e.cause?.message).joinToString(" | ")
+                val hint = when {
+                    raw.contains("PERMISSION_DENIED", ignoreCase = true) ||
+                        raw.contains("Missing or insufficient permissions", ignoreCase = true) ->
+                        "Firestore rules are blocking the app.\n\nFirestore → Rules → paste firestore.rules → Publish.\nThen reopen the app."
+                    raw.contains("Unable to resolve host", ignoreCase = true) ||
+                        raw.contains("Unavailable", ignoreCase = true) ||
+                        raw.contains("network", ignoreCase = true) ||
+                        raw.contains("TIMEOUT", ignoreCase = true) ->
+                        "Cannot reach Firestore even with VPN.\n\nTry another VPN server, then reopen.\n\n($raw)"
+                    else -> "Startup failed:\n$raw"
+                }
                 _state.update {
-                    it.copy(
-                        isLoading = false,
-                        setupMessage = e.message
-                            ?: "Add google-services.json from Firebase Console, then rebuild."
-                    )
+                    it.copy(isLoading = false, setupMessage = hint)
                 }
             }
         }
@@ -168,6 +187,18 @@ class PingViewModel(application: Application) : AndroidViewModel(application) {
         if (ping.id in seenPingIds) return
         seenPingIds.addLast(ping.id)
         while (seenPingIds.size > 20) seenPingIds.removeFirst()
+
+        // If Ping is not on screen, raise a full-screen lock alert immediately
+        // (works even when FCM is delayed, as long as Firestore reaches this phone).
+        if (!PingApplication.inForeground.value) {
+            LoveNotifier.showFullScreen(
+                getApplication(),
+                title = "Ping",
+                body = ping.message,
+                fromCode = ping.fromCode
+            )
+        }
+
         loveResetJob?.cancel()
         _state.update {
             it.copy(incomingLove = true, incomingMessage = ping.message)

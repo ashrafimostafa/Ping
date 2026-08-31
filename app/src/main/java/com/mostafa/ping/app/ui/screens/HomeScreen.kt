@@ -107,13 +107,6 @@ fun HomeScreen(
             )
             StatusLines(state)
             Spacer(Modifier.weight(1f))
-            if (!state.pushConfigured) {
-                Text(
-                    "Lock-screen alerts need fcm-service-account.json",
-                    style = PingTypography.bodySmall,
-                    textAlign = TextAlign.Center
-                )
-            }
         }
     }
 }

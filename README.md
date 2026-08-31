@@ -9,8 +9,8 @@ There is no server you run. Pairing lives in Firebase Firestore. Push uses Fireb
 1. Open [Firebase Console](https://console.firebase.google.com/) and create a project.
 2. Add an **Android** app with package name `com.mostafa.ping.app`.
 3. Download `google-services.json` into `app/google-services.json`.
-4. Authentication → Sign-in method → enable **Anonymous**.
-5. Firestore Database → Create database (start in test mode, then paste `firestore.rules`).
+4. Authentication is optional now (the app uses a local device ID).
+5. Firestore Database → Create database, then paste `firestore.rules` and Publish.
 6. Cloud Messaging is on by default.
 
 ## Lock-screen notifications (backend-less)

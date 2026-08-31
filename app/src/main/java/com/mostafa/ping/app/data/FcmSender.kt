@@ -1,6 +1,7 @@
 package com.mostafa.ping.app.data
 
 import android.util.Base64
+import android.util.Log
 import com.mostafa.ping.app.PingApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -21,12 +22,10 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Sends FCM from the device using the HTTP v1 API.
- *
- * This is the backend-less path: drop a Firebase service-account JSON in
- * `app/src/main/assets/fcm-service-account.json`. Fine for a private two-person
- * app; do not ship that JSON in a public store listing.
+ * Requires `app/src/main/assets/fcm-service-account.json`.
  */
 object FcmSender {
+    private const val TAG = "PingFcm"
     private const val ASSET_NAME = "fcm-service-account.json"
     private const val SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
     private const val TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -34,8 +33,8 @@ object FcmSender {
 
     private val json = Json { ignoreUnknownKeys = true }
     private val http = OkHttpClient.Builder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .connectTimeout(25, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS)
         .build()
 
     private val mutex = Mutex()
@@ -46,45 +45,60 @@ object FcmSender {
     val isConfigured: Boolean
         get() = loadAccount() != null
 
-    suspend fun sendLove(targetCode: String, fromCode: String) {
+    suspend fun sendLove(targetCode: String, fromCode: String, targetToken: String? = null) {
         val acct = loadAccount()
-            ?: error("Missing $ASSET_NAME in app assets")
-        val token = accessToken(acct)
-        val body = JSONObject()
-            .put(
-                "message",
-                JSONObject()
-                    .put("topic", PairCode.topic(targetCode))
-                    .put(
-                        "notification",
-                        JSONObject()
-                            .put("title", "Ping")
-                            .put("body", "I love you ❤️")
-                    )
-                    .put(
-                        "data",
-                        JSONObject()
-                            .put("type", "love")
-                            .put("fromCode", fromCode)
-                    )
-                    .put(
-                        "android",
-                        JSONObject()
-                            .put("priority", "HIGH")
-                            .put(
-                                "notification",
-                                JSONObject()
-                                    .put("channel_id", "love_pings")
-                                    .put("sound", "default")
-                                    .put("notification_count", 1)
-                            )
-                    )
-            )
-            .toString()
+            ?: error("Push not configured (missing $ASSET_NAME). Rebuild after adding the file.")
+        val oauth = accessToken(acct)
 
+        val errors = mutableListOf<String>()
+
+        if (!targetToken.isNullOrBlank()) {
+            runCatching {
+                postMessage(acct.projectId, oauth, tokenTarget(targetToken, fromCode))
+                Log.d(TAG, "FCM token send OK")
+                return
+            }.onFailure { errors += "token: ${it.message}" }
+        }
+
+        runCatching {
+            postMessage(acct.projectId, oauth, topicTarget(targetCode, fromCode))
+            Log.d(TAG, "FCM topic send OK")
+            return
+        }.onFailure { errors += "topic: ${it.message}" }
+
+        error(errors.joinToString(" | ").ifBlank { "Notification send failed" })
+    }
+
+    private fun tokenTarget(token: String, fromCode: String): JSONObject =
+        messageBody(fromCode).put("token", token)
+
+    private fun topicTarget(targetCode: String, fromCode: String): JSONObject =
+        messageBody(fromCode).put("topic", PairCode.topic(targetCode))
+
+    private fun messageBody(fromCode: String): JSONObject =
+        JSONObject()
+            .put(
+                "data",
+                JSONObject()
+                    .put("type", "love")
+                    .put("fromCode", fromCode)
+                    .put("title", "Ping")
+                    .put("body", "I love you ❤️")
+                    .put("message", "I love you ❤️")
+            )
+            .put(
+                "android",
+                JSONObject()
+                    .put("priority", "HIGH")
+                    .put("ttl", "120s")
+                    .put("direct_boot_ok", true)
+            )
+
+    private suspend fun postMessage(projectId: String, oauth: String, message: JSONObject) {
+        val body = JSONObject().put("message", message).toString()
         val request = Request.Builder()
-            .url("https://fcm.googleapis.com/v1/projects/${acct.projectId}/messages:send")
-            .addHeader("Authorization", "Bearer $token")
+            .url("https://fcm.googleapis.com/v1/projects/$projectId/messages:send")
+            .addHeader("Authorization", "Bearer $oauth")
             .addHeader("Content-Type", "application/json")
             .post(body.toRequestBody(jsonMedia))
             .build()
@@ -92,8 +106,9 @@ object FcmSender {
         withContext(Dispatchers.IO) {
             http.newCall(request).execute().use { response ->
                 val text = response.body?.string().orEmpty()
+                Log.d(TAG, "FCM response ${response.code}: $text")
                 if (!response.isSuccessful) {
-                    error("FCM send failed (${response.code}): $text")
+                    error("HTTP ${response.code}: $text")
                 }
             }
         }
@@ -106,7 +121,8 @@ object FcmSender {
             app.assets.open(ASSET_NAME).bufferedReader().use { reader ->
                 json.decodeFromString<ServiceAccount>(reader.readText())
             }.also { account = it }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load $ASSET_NAME", e)
             null
         }
     }

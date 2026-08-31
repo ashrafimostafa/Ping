@@ -5,17 +5,23 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.mostafa.ping.app.LoveAlarmActivity
 import com.mostafa.ping.app.MainActivity
 import com.mostafa.ping.app.R
 
 object LoveNotifier {
-    const val CHANNEL_ID = "love_pings"
+    const val CHANNEL_ID = "love_pings_fullscreen"
     private const val NOTIFICATION_ID = 1001
+    @Volatile private var lastShownAt = 0L
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
+        // Recreate high-importance channel used for full-screen love alerts.
+        runCatching { manager.deleteNotificationChannel("love_pings") }
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.notification_channel_name),
@@ -23,23 +29,48 @@ object LoveNotifier {
         ).apply {
             description = context.getString(R.string.notification_channel_desc)
             enableVibration(true)
-            vibrationPattern = longArrayOf(0, 80, 60, 80, 60, 220)
+            vibrationPattern = longArrayOf(0, 120, 80, 120, 80, 280)
             setShowBadge(true)
+            lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                setAllowBubbles(true)
+            }
         }
         manager.createNotificationChannel(channel)
     }
 
-    fun show(context: Context, title: String, body: String) {
+    fun showFullScreen(context: Context, title: String, body: String, fromCode: String = "") {
+        val now = System.currentTimeMillis()
+        if (now - lastShownAt < 2_500) return
+        lastShownAt = now
+
         ensureChannel(context)
-        val launch = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        wakeScreen(context)
+
+        val fullScreenIntent = Intent(context, LoveAlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_NO_USER_ACTION
+            putExtra(LoveAlarmActivity.EXTRA_MESSAGE, body)
+            putExtra(LoveAlarmActivity.EXTRA_FROM, fromCode)
         }
-        val pending = PendingIntent.getActivity(
+        val fullScreenPending = PendingIntent.getActivity(
             context,
-            0,
-            launch,
+            2001,
+            fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        val tapIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentPending = PendingIntent.getActivity(
+            context,
+            0,
+            tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_heart)
             .setColor(context.getColor(R.color.charcoal))
@@ -47,15 +78,37 @@ object LoveNotifier {
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
-            .setContentIntent(pending)
+            .setContentIntent(contentPending)
+            .setFullScreenIntent(fullScreenPending, true)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setTimeoutAfter(30_000)
             .build()
+
         try {
             NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
         } catch (_: SecurityException) {
-            // POST_NOTIFICATIONS not granted yet
+            // POST_NOTIFICATIONS not granted — still try to open full-screen activity.
+            runCatching {
+                context.startActivity(fullScreenIntent)
+            }
+        }
+    }
+
+    private fun wakeScreen(context: Context) {
+        val power = context.getSystemService(PowerManager::class.java) ?: return
+        @Suppress("DEPRECATION")
+        val wake = power.newWakeLock(
+            PowerManager.FULL_WAKE_LOCK or
+                PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                PowerManager.ON_AFTER_RELEASE,
+            "ping:love"
+        )
+        runCatching {
+            wake.acquire(3_000)
+            wake.release()
         }
     }
 }

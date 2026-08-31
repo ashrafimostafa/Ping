@@ -114,13 +114,6 @@ fun PairingScreen(
                 enabled = !state.isLoading && state.partnerInput.length == 6
             )
             StatusLines(state)
-            if (!state.pushConfigured) {
-                Spacer(Modifier.height(PingSpacing.Lg))
-                Text(
-                    "Add fcm-service-account.json to enable lock-screen notifications. Pings still appear when both apps are open.",
-                    style = PingTypography.bodySmall
-                )
-            }
         }
     }
 }
@@ -140,7 +133,7 @@ fun SetupScreen(message: String) {
             Text(message, style = PingTypography.bodyLarge)
             Spacer(Modifier.height(PingSpacing.Sm))
             Text(
-                "Create a Firebase project, add this Android app (com.mostafa.ping.app), download google-services.json into app/, enable Anonymous Auth and Firestore, then rebuild.",
+                "Create a Firebase project, add Android app com.mostafa.ping.app, put google-services.json in app/, create Firestore, paste firestore.rules and Publish. Use VPN if Google is blocked.",
                 style = PingTypography.bodySmall
             )
         }

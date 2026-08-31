@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".PingApplication"
@@ -29,6 +31,16 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".LoveAlarmActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Ping"
+            android:turnScreenOn="true" />
+
         <service
             android:name=".fcm.PingMessagingService"
             android:exported="false">
@@ -39,19 +51,12 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="love_pings" />
+            android:value="love_pings_fullscreen" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_heart" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/charcoal" />
-
-        <!-- Initialize Firebase in Application so a missing google-services.json
-             shows the in-app setup screen instead of crashing at launch. -->
-        <provider
-            android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="${applicationId}.firebaseinitprovider"
-            tools:node="remove" />
     </application>
 </manifest>
