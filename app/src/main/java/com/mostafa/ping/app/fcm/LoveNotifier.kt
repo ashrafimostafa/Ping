@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -20,7 +22,6 @@ object LoveNotifier {
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
-        // Recreate high-importance channel used for full-screen love alerts.
         runCatching { manager.deleteNotificationChannel("love_pings") }
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -71,12 +72,20 @@ object LoveNotifier {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val loveBitmap = loveBitmap(context)
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_heart)
             .setColor(context.getColor(R.color.charcoal))
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(
+                NotificationCompat.BigPictureStyle()
+                    .bigPicture(loveBitmap)
+                    .bigLargeIcon(null as Bitmap?)
+                    .setBigContentTitle(title)
+                    .setSummaryText(body)
+            )
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -85,17 +94,23 @@ object LoveNotifier {
             .setFullScreenIntent(fullScreenPending, true)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setTimeoutAfter(30_000)
-            .build()
+
+        if (loveBitmap != null) {
+            builder.setLargeIcon(loveBitmap)
+        }
 
         try {
-            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
         } catch (_: SecurityException) {
-            // POST_NOTIFICATIONS not granted — still try to open full-screen activity.
-            runCatching {
-                context.startActivity(fullScreenIntent)
-            }
+            runCatching { context.startActivity(fullScreenIntent) }
         }
     }
+
+    private fun loveBitmap(context: Context): Bitmap? =
+        runCatching {
+            BitmapFactory.decodeResource(context.resources, R.drawable.img_love_heart_full)
+                ?: BitmapFactory.decodeResource(context.resources, R.drawable.img_love_heart)
+        }.getOrNull()
 
     private fun wakeScreen(context: Context) {
         val power = context.getSystemService(PowerManager::class.java) ?: return
