@@ -1,34 +1,42 @@
+<p align="center">
+  <img src="app/src/main/ic_launcher-playstore.png" width="120" alt="Ping app icon" />
+</p>
+
 # Ping
 
-A two-phone “I love you” button. Each phone gets a short ID. Enter your partner’s ID once, then tap the heart — they get a notification.
+A tiny app for two people. Tap a heart on your phone — your partner gets an **I love you** notification on theirs.
 
-There is no server you run. Pairing lives in Firebase Firestore. Push uses Firebase Cloud Messaging sent from the app.
+## What it does
 
-## Firebase setup (required)
+- Each phone gets a short **6-character ID**
+- You connect once by entering your partner’s ID
+- Tap the heart anytime to ping them
+- They see a full-screen / lock-screen alert (when push is set up)
 
-1. Open [Firebase Console](https://console.firebase.google.com/) and create a project.
-2. Add an **Android** app with package name `com.mostafa.ping.app`.
-3. Download `google-services.json` into `app/google-services.json`.
-4. Authentication is optional now (the app uses a local device ID).
-5. Firestore Database → Create database, then paste `firestore.rules` and Publish.
-6. Cloud Messaging is on by default.
+No chat. No accounts. Just one button for the two of you.
 
-## Lock-screen notifications (backend-less)
+## How it works
 
-FCM will not send from the official Android SDK. This app calls the FCM HTTP API from the phone using a Firebase **service account**. That is acceptable for a private two-person app. Do not publish that JSON in a public store build.
+1. **Pairing** — IDs and partner links are stored in **Firebase Firestore**
+2. **Ping** — tapping the heart writes to Firestore and sends a push with **Firebase Cloud Messaging (FCM)**
+3. **No custom server** — the app talks to Firebase directly  
+   (FCM send uses a service-account key inside the app — fine for a private two-person build)
 
-1. Firebase Console → Project settings → **Service accounts** → Generate new private key.
-2. Save the file as `app/src/main/assets/fcm-service-account.json`
-   (see `fcm-service-account.json.example`).
-3. Rebuild and install on **both** phones.
+Package name: `com.mostafa.ping.app`
 
-Without that file, pairing and the heart still work. The other phone sees the ping when Ping is open.
+## Setup (once)
+
+1. Create a Firebase project and add an Android app with package `com.mostafa.ping.app`
+2. Put `google-services.json` in `app/`
+3. Create **Firestore**, paste `firestore.rules`, click **Publish**
+4. For lock-screen alerts: Project settings → Service accounts → Generate new private key  
+   Save as `app/src/main/assets/fcm-service-account.json`
+5. Build and install on **both** phones (same Firebase project)
+
+Use a VPN if Google/Firebase is blocked on your network.
 
 ## Use it
 
-1. Install on both phones (same `google-services.json` / same Firebase project).
-2. Allow notifications when asked.
-3. Share your 6-character ID. On the other phone, type that ID and tap **Connect**.
-4. Tap the heart. Partner gets “I love you ❤️”.
-
-Both phones need Google Play services. A network that can reach Firebase is required.
+1. Open Ping on both phones and allow notifications
+2. Share your ID → partner taps **Connect**
+3. Tap the heart → they get **I love you**
