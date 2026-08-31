@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Ping</string>
+    <string name="notification_channel_name">Love pings</string>
+    <string name="notification_channel_desc">When your partner taps I love you</string>
+    <string name="love_notification_title">Ping</string>
+    <string name="love_notification_body">I love you ❤️</string>
+</resources>

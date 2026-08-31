@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /devices/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if signedIn() &&
+        request.resource.data.uid == resource.data.uid &&
+        (
+          resource.data.uid == request.auth.uid ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['partnerCode'])
+        );
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /inboxes/{code}/pings/{pingId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+    }
+  }
+}

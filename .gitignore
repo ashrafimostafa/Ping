@@ -1,0 +1,213 @@
+# =============================================================================
+# Android .gitignore (Linux / Windows / macOS)
+# Copy this file to your project root as: .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Built application / library artifacts
+# -----------------------------------------------------------------------------
+*.apk
+*.ap_
+*.aab
+*.aar
+*.dex
+
+# Java / Kotlin class files
+*.class
+
+# -----------------------------------------------------------------------------
+# Build system output (Gradle / AGP)
+# -----------------------------------------------------------------------------
+bin/
+gen/
+out/
+# Default release/ output folder (legacy / some templates)
+release/
+build/
+.gradle/
+# Gradle configuration cache / build cache (local)
+.gradle-kotlin-dsl/
+
+# Lint / profiling / captures
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+captures/
+*.hprof
+
+# NDK / CMake / native build
+obj/
+.externalNativeBuild/
+.cxx/
+cmake-build-*/
+
+# -----------------------------------------------------------------------------
+# Local machine / SDK paths (never share these)
+# -----------------------------------------------------------------------------
+local.properties
+# Optional: local overrides (uncomment if you use them)
+# local.gradle
+# *.local.properties
+
+# -----------------------------------------------------------------------------
+# Signing & secrets — NEVER commit these
+# -----------------------------------------------------------------------------
+*.jks
+*.keystore
+*.key
+*.pem
+*.p12
+*.mobileprovision
+keystore.properties
+secrets.properties
+*.secure
+# Firebase / Google / Huawei service config often contains secrets
+google-services.json
+agconnect-services.json
+# Uncomment the next line only if you intentionally keep a public debug keystore
+# !debug.keystore
+
+# -----------------------------------------------------------------------------
+# Android Studio / IntelliJ IDEA
+# -----------------------------------------------------------------------------
+*.iml
+.idea/
+# Keep shared run configs if your team wants them in git (optional):
+# !.idea/runConfigurations/
+.navigation/
+*.ipr
+*.iws
+.fleet/
+
+# -----------------------------------------------------------------------------
+# VS Code / Cursor (optional local editor settings)
+# -----------------------------------------------------------------------------
+.vscode/
+!.vscode/extensions.json
+
+# -----------------------------------------------------------------------------
+# Kotlin / Compose / tooling caches
+# -----------------------------------------------------------------------------
+.kotlin/
+*.kotlin_module
+
+# -----------------------------------------------------------------------------
+# Testing / coverage
+# -----------------------------------------------------------------------------
+*.exec
+*.ec
+coverage/
+.jacoco/
+test-output/
+test-results/
+
+# -----------------------------------------------------------------------------
+# Crashlytics / Fabric / Firebase crash tooling
+# -----------------------------------------------------------------------------
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# -----------------------------------------------------------------------------
+# Logs & temp files
+# -----------------------------------------------------------------------------
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+
+# -----------------------------------------------------------------------------
+# macOS
+# -----------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# -----------------------------------------------------------------------------
+# Windows
+# -----------------------------------------------------------------------------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+# Windows reserved alternate data streams / zone identifier
+*:Zone.Identifier
+
+# -----------------------------------------------------------------------------
+# Linux
+# -----------------------------------------------------------------------------
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# -----------------------------------------------------------------------------
+# Archives / dumps often left in project folders by mistake
+# -----------------------------------------------------------------------------
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+
+# -----------------------------------------------------------------------------
+# Fastlane (if used)
+# -----------------------------------------------------------------------------
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# -----------------------------------------------------------------------------
+# Play Store / publishing local leftovers
+# -----------------------------------------------------------------------------
+*.pepk
+play-store-credentials.json
+api-*.json
+
+# -----------------------------------------------------------------------------
+# Misc generated / vendor noise
+# -----------------------------------------------------------------------------
+proguard/
+freeline.py
+freeline/
+freeline_project_description.json
+.freeline/
+.navigation/
+# Buck (rare)
+.buckd/
+buck-out/
+\.buckconfig.local
+
+# -----------------------------------------------------------------------------
+# Ping — FCM client sender credentials (never commit)
+# -----------------------------------------------------------------------------
+fcm-service-account.json
+**/fcm-service-account.json
